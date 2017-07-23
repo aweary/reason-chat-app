@@ -1,6 +1,6 @@
-# Basic Reason Template
+# reason-chat-app
 
-Hello! This project allows you to quickly get started with Reason and BuckleScript. If you wanted a more sophisticated version, try the `react` template (`bsb -theme react -init .`).
+A chat application inspired by Discord built with ReasonML. Please think of a better name for me
 
 # Build
 ```
