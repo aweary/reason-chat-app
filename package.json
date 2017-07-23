@@ -1,0 +1,33 @@
+{
+  "name": "reason-discord",
+  "version": "0.1.0",
+  "scripts": {
+    "clean": "bsb -clean-world",
+    "build:bsb": "bsb -make-world",
+    "watch:bsb": "bsb -make-world -w",
+    "build:webpack": "webpack",
+    "build": "rimraf dist/** & npm run build:bsb & npm run build:webpack"
+  },
+  "keywords": [
+    "BuckleScript"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "babel-core": "^6.25.0",
+    "babel-loader": "^7.1.1",
+    "babel-preset-env": "^1.6.0",
+    "bs-platform": "1.8.1",
+    "html-webpack-plugin": "^2.29.0",
+    "rimraf": "^2.6.1",
+    "style-loader": "^0.18.2",
+    "webpack": "^3.3.0",
+    "webpack-dev-server": "^2.6.1"
+  },
+  "dependencies": {
+    "bs-webapi": "^0.5.0",
+    "css-loader": "^0.28.4",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "reason-react": "^0.2.3"
+  }
+}

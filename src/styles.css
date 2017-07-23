@@ -1,0 +1,148 @@
+* {
+  font-family: 'Open Sans', sans-serif !important;
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+    width: 0px;  /* remove scrollbar space */
+    background: transparent;  /* optional: just make scrollbar invisible */
+}
+
+#app {
+  height: 100%;
+}
+
+.app-container {
+  display: flex;
+  height: 100%;
+}
+.chat--container {
+  // background-color: #44f;
+  flex: 1 1 80vh;
+  padding: 0;
+  margin: 0;
+  overflow: scroll;
+}
+
+.chat--content {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+
+.chat-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.channel-list {
+  display: none;
+  margin: 0;
+  flex: 0.2;
+  height: 100vh;
+  background-color: #263238;
+  color: white;
+  list-style: none;
+  min-width: 200px;
+  max-width: 100px;
+  padding: 20px 10px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+@media screen and (min-width: 600px) {
+  .channel-list {
+    display: initial;
+  }
+}
+
+.channel-list--item {
+  font-size: 13px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  padding: 7.5px;
+  border-radius: 5px;
+  transition-duration: 100ms;
+  color: #f5f5f5;
+}
+
+.channel-list--item:hover {
+  background-color: #37474F;
+}
+
+.channel-active-item {
+  background-color: #f4a;
+}
+
+.channel-active-item:hover {
+  background-color: #f4a;
+}
+
+.chat-message {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  display: flex;
+}
+
+.chat-message--content {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-message--user {
+  font-weight: bold;
+  /* color: #44f */
+  color: #f4a;
+}
+
+.chat-message--time {
+  color: grey;
+  font-size: 10px;
+  padding-left: 5px;
+}
+
+.chat-message--text {
+  margin-top: 10px;
+  white-space: pre-line;
+}
+
+.message-input {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #e8e8e8;
+}
+
+.message-input textarea {
+  color: #807e81;
+  background-color: #e8e8e8;
+  border: none;
+  border-radius: 5px;
+  outline: none;
+  margin: 40px auto;
+  width: 80%; 
+  resize: none;
+  height: 28px;
+  padding-top: 11px;
+  padding-left: 15px;
+}
+
+@media screen and (min-width: 768px) {
+  .message-input textarea {
+    width: 95%;
+  }
+}
+
+.user-avatar {
+  height: 30px;
+  margin-right: 20px;
+  border-radius: 100%;
+}
