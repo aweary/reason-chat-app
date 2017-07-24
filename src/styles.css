@@ -14,6 +14,10 @@ html, body {
     background: transparent;  /* optional: just make scrollbar invisible */
 }
 
+::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+  color: #b0bec5;
+}
+
 #app {
   height: 100%;
 }
@@ -100,7 +104,7 @@ html, body {
 .chat-message--user {
   font-weight: bold;
   /* color: #44f */
-  color: #f4a;
+  color: #44f;
 }
 
 .chat-message--time {
@@ -112,6 +116,7 @@ html, body {
 .chat-message--text {
   margin-top: 10px;
   white-space: pre-line;
+  line-height: 1.4;
 }
 
 .message-input {
@@ -122,7 +127,7 @@ html, body {
 }
 
 .message-input textarea {
-  color: #807e81;
+  color: #546e7a;
   background-color: #e8e8e8;
   border: none;
   border-radius: 5px;
