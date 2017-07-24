@@ -4,7 +4,7 @@ type userStatus =
   | DoNotDisturb
   | Invisible;
 
-type userId = int;
+type userId = string;
 
 type messageId = int;
 
@@ -22,7 +22,7 @@ type user = {
 
 type message = {
   content: string,
-  author: userId,
+  author: user,
   id: messageId,
   channelId: channelId
 };
