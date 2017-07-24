@@ -8,7 +8,7 @@ type state = {value: string};
 
 let component = ReasonReact.statefulComponent "Foo";
 
-let make ::onNewMessage _children => {
+let make ::onNewMessage ::channel _children => {
   let handleChange event _ => {
     let target = event |> ReactEventRe.Form.target |> ReactDOMRe.domElementToObj;
     ReasonReact.Update {value: target##value}
@@ -30,12 +30,19 @@ let make ::onNewMessage _children => {
     ...component,
     initialState: fun () => {value: ""},
     render: fun self =>
-      <form className="message-input">
+      {
+        let placeholder = switch channel {
+        | Some c => "Message #" ^ c.name
+        | None => "Send a message"
+        };
+        <form className="message-input">
         <textarea
+          placeholder
           value=self.state.value
           onKeyDown=(self.update handleKeyDown)
           onChange=(self.update handleChange)
         />
       </form>
+      }
   }
 };

@@ -1,12 +1,20 @@
+open Types;
 let component = ReasonReact.statelessComponent "ChannelList";
 
-let make _ => {
+let mapChannelsToElements channels active onChannelSelect => {
+  Js.Array.map (fun channel => {
+    let className = channel.id == active ? "channel-list--item channel-active-item" : "channel-list--item";
+    <li className onClick=(fun _ => onChannelSelect(channel.id))>
+      (ReasonReact.stringToElement ("# " ^ channel.name))
+    </li>
+  }) channels
+};
+
+let make ::active ::channels ::onChannelSelect _ => {
   ...component,
   render: fun self => {
     <ul className="channel-list">
-      <li className="channel-list--item channel-active-item">(ReasonReact.stringToElement "# general")</li>
-      <li className="channel-list--item">(ReasonReact.stringToElement "# reasonml")</li>
-      <li className="channel-list--item">(ReasonReact.stringToElement "# react")</li>
+      (ReasonReact.arrayToElement (mapChannelsToElements channels active onChannelSelect))
     </ul>
   }
 }

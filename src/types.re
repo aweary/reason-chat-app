@@ -8,6 +8,8 @@ type userId = int;
 
 type messageId = int;
 
+type channelId = int;
+
 type user = {
   firstName: string,
   lastName: string,
@@ -21,11 +23,11 @@ type user = {
 type message = {
   content: string,
   author: userId,
-  id: messageId
+  id: messageId,
+  channelId: channelId
 };
 
 type channel = {
   name: string,
-  users: list userId,
-  messages: list messageId
+  id: channelId
 };
