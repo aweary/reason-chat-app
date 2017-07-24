@@ -9,7 +9,7 @@ let component = ReasonReact.statefulComponent "MessageList";
  * Map an array of message records to an unordered
  * list.
  */
-let mapMessageToListItem (message: message) => <ChatMessage message />;
+let mapMessageToListItem message => <ChatMessage message />;
 
 let make ::messages _ => {
   let setMessageRef theRef {ReasonReact.state} => ReasonReact.SilentUpdate {...state, messageRef: Js.Null.to_opt theRef};
