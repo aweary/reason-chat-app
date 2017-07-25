@@ -1,11 +1,11 @@
 let component = ReasonReact.statelessComponent "Content";
 
-let make ::onNewMessage ::messages ::channel _ => {
+let make ::onNewMessage ::messages ::users ::channel _ => {
   {
   ...component,
   render: fun _ => {
     <div className="chat-content">
-      <MessageList messages />
+      <MessageList messages users />
       <MessageInput channel onNewMessage />
     </div>
   }
