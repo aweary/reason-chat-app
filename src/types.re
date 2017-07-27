@@ -6,7 +6,7 @@ type userStatus =
 
 type userId = string;
 
-type messageId = int;
+type messageId = string;
 
 type channelId = int;
 
@@ -22,12 +22,28 @@ type user = {
 
 type message = {
   content: string,
-  author: user,
+  author: userId,
   id: messageId,
   channelId: channelId
 };
 
 type channel = {
   name: string,
-  id: channelId
+  id: channelId,
+  topic: string
 };
+
+
+ type messageAuthor = {
+  nickname: string,
+  id: userId,
+  avatar: string
+};
+
+type message2 = {
+  content: string,
+  id: messageId,
+  channel: channelId,
+  timestamp: string,
+  author: messageAuthor
+}; 
