@@ -2,17 +2,19 @@ open Types;
 
 open ReasonJs;
 
-external changeEventToObj : ReactEventRe.Form.t => Js.t {..} = "%identity";
+external getUrls : string => Js.Array.t string = "get-urls" [@@bs.module];
 
 type state = {value: string};
 
 let component = ReasonReact.statefulComponent "Foo";
 
-let make ::onNewMessage ::channel _children => {
+let make ::onChange ::onNewMessage ::channel _children => {
   let handleChange event _ => {
     let target = event |> ReactEventRe.Form.target |> ReactDOMRe.domElementToObj;
+    onChange target##value;
     ReasonReact.Update {value: target##value}
   };
+
   let handleKeyDown event {ReasonReact.state: state} => {
     let keyCode = ReactEventRe.Keyboard.keyCode event;
     if (keyCode == 13 && not (ReactEventRe.Keyboard.shiftKey event)) {
