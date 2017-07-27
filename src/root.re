@@ -24,26 +24,19 @@ let component = ReasonReact.statefulComponent "Root";
 
 Js.log Api.apiHost;
 
-let fetchMessageHistory callback =>
-  Js.Promise.(
-    fetch (Api.apiHost ^ "api/messages?limit=50") |> then_ Response.json |>
-    then_ (
-      fun json => {
-        switch (Js.Json.decodeArray json) {
-        | Some foo => callback (Js.Array.map Api.decodeMessage2 foo)
-        | None => Js.log "Received message response that does not match expected format"
-        };
-        resolve ()
-      }
-    )
-  );
-
 let updateUserList users {ReasonReact.state: state} =>
   ReasonReact.Update {...state, users: Js.Array.concat users state.users};
 
-let updateMessageHistory messages {ReasonReact.state: state} =>
-  ReasonReact.Update {...state, messages: Js.Array.concat messages state.messages};
+let updateMessageHistory json {ReasonReact.state: state} => {
+  let messages = switch (Js.Json.decodeArray json) {
+  | Some decodedJson => (Js.Array.map Api.decodeMessage2 decodedJson)
+  | None => Js.Exn.raiseError "Unable to parse message history."
+  };
+  /* @TODO should we try to merge existing local messages? */
+  ReasonReact.Update {...state, messages }
+};
 
+/* ReasonReact.Update {...state, messages: Js.Array.concat messages state.messages}; */
 let createMessage messageText (user: user) channel => {
   id: shortId (),
   author: {
@@ -58,13 +51,13 @@ let createMessage messageText (user: user) channel => {
 };
 
 let createUser nickname => {
-    firstName: "",
-    lastName: "",
-    nickname: nickname,
-    id: shortId (),
-    status: Available,
-    picture: "https://semantic-ui.com/images/avatar2/large/matthew.png",
-    roles: []
+  firstName: "",
+  lastName: "",
+  nickname,
+  id: shortId (),
+  status: Available,
+  picture: "https://semantic-ui.com/images/avatar2/large/matthew.png",
+  roles: []
 };
 
 let getChannelById (channelId: channelId) channels =>
@@ -97,14 +90,13 @@ let handleNewRemoteUser userJson {ReasonReact.state: state} => {
   }
 };
 
-let onNewUserJoinSuccess nickname {ReasonReact.state: state} => { 
+let onNewUserJoinSuccess nickname {ReasonReact.state: state} => {
   let user = createUser nickname;
-  ReasonReact.Update {...state, loggedIn: true, activeUser: user }
+  ReasonReact.Update {...state, loggedIn: true, activeUser: user}
 };
 
-let onNewUserJoinFailure errorMessage {ReasonReact.state: state} => {
-  ReasonReact.Update {...state, joinError: Some errorMessage }
-};
+let onNewUserJoinFailure errorMessage {ReasonReact.state: state} =>
+  ReasonReact.Update {...state, joinError: Some errorMessage};
 
 let handleNewUserJoin onSuccess onFailure username => {
   let user = {
@@ -129,21 +121,13 @@ let make _children => {
   ...component,
   initialState: fun _ => {
     let token = SafeStorage.readTokenFromStorage ();
+    let loggedIn = token !== "";
     /* Api.authenticate "foobar" "baz"; */
     /* @TODO stop generating a fake user */
-    let tokenExists = token !== "";
-    let activeUser = {
-      firstName: "",
-      lastName: "",
-      nickname: tokenExists ? token : sillyname (),
-      id: shortId (),
-      status: Available,
-      picture: "https://semantic-ui.com/images/avatar2/large/matthew.png",
-      roles: []
-    };
+    let user = createUser "";
     /* Socket.emitNewUser socket activeUser; */
     {
-      users: [|activeUser|],
+      users: [|user|],
       messages: [||],
       channels: [|
         {id: 1, name: "general", topic: "General discussions."},
@@ -152,15 +136,18 @@ let make _children => {
         {id: 4, name: "another-fake-channel", topic: "Why even write this?"}
       |],
       activeChannel: 1,
-      activeUser,
-      loggedIn: tokenExists,
+      activeUser: user,
+      loggedIn,
       joinError: None
     }
   },
   didMount: fun self => {
-    let fetchUsers = self.update updateUserList;
-    let fetchMessages = self.update updateMessageHistory;
-    fetchMessageHistory fetchMessages;
+    Api.authenticatedFetch
+      path::"api/messages?limit=50"
+      method_::Get
+      onSuccess::(self.update updateMessageHistory)
+      onFailure::(fun response => Js.log response)
+      ();
     Socket.on socket Socket.messageEvent (self.update handleNewRemoteMessage);
     /* Socket.on socket Socket.userEvent (self.update handleNewRemoteUser); */
     ReasonReact.NoUpdate
@@ -169,7 +156,10 @@ let make _children => {
     let boundonNewUserJoinSuccess = self.update onNewUserJoinSuccess;
     let boundonNewUserJoinFailure = self.update onNewUserJoinFailure;
     if (not self.state.loggedIn) {
-      <Login joinError=self.state.joinError onJoinAttempt=(handleNewUserJoin boundonNewUserJoinSuccess boundonNewUserJoinFailure) />
+      <Login
+        joinError=self.state.joinError
+        onJoinAttempt=(handleNewUserJoin boundonNewUserJoinSuccess boundonNewUserJoinFailure)
+      />
     } else {
       let activeChannel = getChannelById self.state.activeChannel self.state.channels;
       let activeMessages = filterMessagesByChannel self.state.messages self.state.activeChannel;

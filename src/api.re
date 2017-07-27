@@ -12,6 +12,39 @@ let encodeAuthData username password => {
     | None => Js.Exn.raiseError "Bad username"
   }
 };
+
+let getAuthenticatedFetchHeaders (token: string) => {
+  /* let json = switch (Js.Json.stringifyAny { "token": token }) {
+    | Some str => str
+    | None => Js.Exn.raiseError "Issue validating message"
+  } */
+  HeadersInit.make {
+    "x-access-token": token,
+    "Content-Type": "application/json"
+  }
+};
+
+let authenticatedFetch ::method_ ::path ::onSuccess ::onFailure () => {
+  let headers = getAuthenticatedFetchHeaders "THIS ISNT REAL";
+  let requestInit = RequestInit.make headers::headers method_::method_ ();
+  Js.log "Making the request!";
+  ignore @@ Js.Promise.(
+    fetchWithInit (apiHost ^ path) requestInit
+    |> then_ (fun response => {
+      let status = Response.status response;
+      let json = Response.json response;
+      then_ (fun jsonText => {
+        if (status == 200) {
+          onSuccess jsonText;
+        } else {
+          onFailure jsonText;
+        };
+        Js.log status;
+      } |> resolve) json;
+    })
+  )
+};
+
 let authenticate username password => {
   let body = encodeAuthData username password;
   let headers = HeadersInit.make {"Content-Type": "application/json"};
