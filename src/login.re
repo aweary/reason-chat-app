@@ -9,9 +9,9 @@ let make ::onJoinAttempt ::joinError _children => {
     onJoinAttempt state.value;
     ReasonReact.NoUpdate
   };
-  let handleInputChange event {ReasonReact.state: state} => {
+  let handleInputChange event _state => {
     let target = event |> ReactEventRe.Form.target |> ReactDOMRe.domElementToObj;
-    ReasonReact.Update {...state, value: target##value }
+    ReasonReact.Update {value: target##value }
   };
   {
     ...component,
