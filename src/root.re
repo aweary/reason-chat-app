@@ -15,10 +15,11 @@ type state = {
   activeChannel: channelId,
   activeUser: user,
   loggedIn: bool,
-  joinError: option string
+  authenticating: bool,
+  joinError: option string,
+  socket: option Socket.socket,
+  token: string
 };
-
-let socket = Socket.createClient Api.apiHost {"query": {"token": "foo"}};
 
 let component = ReasonReact.statefulComponent "Root";
 
@@ -28,12 +29,13 @@ let updateUserList users {ReasonReact.state: state} =>
   ReasonReact.Update {...state, users: Js.Array.concat users state.users};
 
 let updateMessageHistory json {ReasonReact.state: state} => {
-  let messages = switch (Js.Json.decodeArray json) {
-  | Some decodedJson => (Js.Array.map Api.decodeMessage2 decodedJson)
-  | None => Js.Exn.raiseError "Unable to parse message history."
-  };
+  let messages =
+    switch (Js.Json.decodeArray json) {
+    | Some decodedJson => Js.Array.map Api.decodeMessage2 decodedJson
+    | None => Js.Exn.raiseError "Unable to parse message history."
+    };
   /* @TODO should we try to merge existing local messages? */
-  ReasonReact.Update {...state, messages }
+  ReasonReact.Update {...state, messages}
 };
 
 /* ReasonReact.Update {...state, messages: Js.Array.concat messages state.messages}; */
@@ -63,12 +65,17 @@ let createUser nickname => {
 let getChannelById (channelId: channelId) channels =>
   Js.Array.find (fun (channel: channel) => channel.id == channelId) channels;
 
-let handleNewLocalMessage messageText {ReasonReact.state: state} => {
-  let message = createMessage messageText state.activeUser state.activeChannel;
-  Socket.emitNewMessage socket message;
-  let messages = Js.Array.concat [|message|] state.messages;
-  ReasonReact.Update {...state, messages}
-};
+let handleNewLocalMessage messageText {ReasonReact.state: state} =>
+  switch state.socket {
+  | Some socket =>
+    let message = createMessage messageText state.activeUser state.activeChannel;
+    Js.log message;
+    /* @TODO pass token for all messages */
+    Socket.emitNewMessage socket message;
+    let messages = Js.Array.concat [|message|] state.messages;
+    ReasonReact.Update {...state, messages}
+  | None => Js.Exn.raiseError "Received local message without a socket instance."
+  };
 
 let handleNewRemoteMessage messageJson {ReasonReact.state: state} => {
   let message = Api.decodeMessage2 (Js.Json.parseExn messageJson);
@@ -90,26 +97,11 @@ let handleNewRemoteUser userJson {ReasonReact.state: state} => {
   }
 };
 
-let onNewUserJoinSuccess nickname {ReasonReact.state: state} => {
-  let user = createUser nickname;
-  ReasonReact.Update {...state, loggedIn: true, activeUser: user}
-};
-
 let onNewUserJoinFailure errorMessage {ReasonReact.state: state} =>
   ReasonReact.Update {...state, joinError: Some errorMessage};
 
-let handleNewUserJoin onSuccess onFailure username => {
-  let user = {
-    firstName: "",
-    lastName: "",
-    nickname: username,
-    id: shortId (),
-    status: Available,
-    picture: "https://semantic-ui.com/images/avatar2/large/matthew.png",
-    roles: []
-  };
-  Api.registerUser username "fakepassword" onSuccess onFailure
-};
+let handleNewUserJoin onSuccess onFailure username password =>
+  Api.registerUser username password onSuccess onFailure;
 
 let handleChannelChange channelId {ReasonReact.state: state} =>
   ReasonReact.Update {...state, activeChannel: channelId};
@@ -117,11 +109,46 @@ let handleChannelChange channelId {ReasonReact.state: state} =>
 let filterMessagesByChannel messages channelId =>
   Js.Array.filter (fun message => message.channel == channelId) messages;
 
+let connectToServer self token => {
+  Api.authenticatedFetch
+    ::token
+    path::"api/messages?limit=50"
+    method_::Get
+    onSuccess::(self.ReasonReact.update updateMessageHistory)
+    onFailure::(fun res => Js.log res)
+    ();
+  let socket = Socket.createClient Api.apiHost {"query": {"token": token}};
+  Socket.on socket Socket.messageEvent (self.ReasonReact.update handleNewRemoteMessage);
+  socket
+};
+
+let onNewUserJoinSuccess self response {ReasonReact.state: state} => {
+  let token = response##token;
+  let user = createUser response##username;
+  let socket = connectToServer self token;
+  SafeStorage.writeTokenToStorage token;
+  ReasonReact.Update {...state, token, loggedIn: true, activeUser: user, socket: Some socket}
+};
+
+let onTokenValidationSuccess self token json {ReasonReact.state: state} => {
+  Js.log "It worked!";
+  let response = Api.jsonToObject json;
+  let user = createUser response##username;
+  let socket = connectToServer self token;
+  ReasonReact.Update {
+    ...state,
+    authenticating: false,
+    loggedIn: true,
+    activeUser: user,
+    socket: Some socket
+  }
+};
+
 let make _children => {
   ...component,
-  initialState: fun _ => {
+  initialState: fun self => {
     let token = SafeStorage.readTokenFromStorage ();
-    let loggedIn = token !== "";
+    let hasExistingToken = token !== "";
     /* Api.authenticate "foobar" "baz"; */
     /* @TODO stop generating a fake user */
     let user = createUser "";
@@ -137,29 +164,38 @@ let make _children => {
       |],
       activeChannel: 1,
       activeUser: user,
-      loggedIn,
-      joinError: None
+      loggedIn: false,
+      authenticating: hasExistingToken,
+      token,
+      joinError: None,
+      socket: None
     }
   },
-  didMount: fun self => {
-    Api.authenticatedFetch
-      path::"api/messages?limit=50"
-      method_::Get
-      onSuccess::(self.update updateMessageHistory)
-      onFailure::(fun response => Js.log response)
-      ();
-    Socket.on socket Socket.messageEvent (self.update handleNewRemoteMessage);
-    /* Socket.on socket Socket.userEvent (self.update handleNewRemoteUser); */
-    ReasonReact.NoUpdate
-  },
+  didMount: fun self =>
+    if self.state.authenticating {
+      Js.log "Validating that topen...";
+      Api.validateToken
+        token::self.state.token
+        onSuccess::(self.update (onTokenValidationSuccess self self.state.token))
+        onFailure::(fun x => Js.log x)
+        ();
+      ReasonReact.NoUpdate
+    } else {
+      ReasonReact.NoUpdate
+    },
   render: fun self => {
-    let boundonNewUserJoinSuccess = self.update onNewUserJoinSuccess;
+    let boundonNewUserJoinSuccess = self.update (onNewUserJoinSuccess self);
     let boundonNewUserJoinFailure = self.update onNewUserJoinFailure;
+    Js.log self.state.loggedIn;
     if (not self.state.loggedIn) {
-      <Login
-        joinError=self.state.joinError
-        onJoinAttempt=(handleNewUserJoin boundonNewUserJoinSuccess boundonNewUserJoinFailure)
-      />
+      if self.state.authenticating {
+        <span> (ReasonReact.stringToElement "Loading...") </span>
+      } else {
+        <LoginOrRegister
+          joinError=self.state.joinError
+          onJoinAttempt=(handleNewUserJoin boundonNewUserJoinSuccess boundonNewUserJoinFailure)
+        />
+      }
     } else {
       let activeChannel = getChannelById self.state.activeChannel self.state.channels;
       let activeMessages = filterMessagesByChannel self.state.messages self.state.activeChannel;
