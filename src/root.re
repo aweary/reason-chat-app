@@ -102,6 +102,8 @@ let onNewUserJoinFailure errorMessage {ReasonReact.state: state} =>
 
 let handleNewUserJoin onSuccess onFailure username password =>
   Api.registerUser username password onSuccess onFailure;
+let handleUserLogin onSuccess onFailure username password =>
+  Api.authenticateUser username password onSuccess onFailure;
 
 let handleChannelChange channelId {ReasonReact.state: state} =>
   ReasonReact.Update {...state, activeChannel: channelId};
@@ -192,8 +194,8 @@ let make _children => {
         <span> (ReasonReact.stringToElement "Loading...") </span>
       } else {
         <LoginOrRegister
-          joinError=self.state.joinError
-          onJoinAttempt=(handleNewUserJoin boundonNewUserJoinSuccess boundonNewUserJoinFailure)
+          onSignUp=(handleNewUserJoin boundonNewUserJoinSuccess boundonNewUserJoinFailure)
+          onLogin=(handleUserLogin boundonNewUserJoinSuccess boundonNewUserJoinFailure)
         />
       }
     } else {
