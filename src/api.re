@@ -6,6 +6,8 @@ external apiHost : string = "process.env.API_HOST" [@@bs.val];
 
 external jsonToObject : Js.Json.t => Js.t {..} = "%identity";
 
+external headersToInt : Bs_fetch.HeadersInit.t => int = "%identity";
+
 let encodeAuthData username password =>
   switch (Js.Json.stringifyAny {"username": username, "password": password}) {
   | Some str => str
@@ -70,6 +72,36 @@ let registerUser username password onSuccess onFailure => {
   Js.Promise.(
     fetchWithInit
       (apiHost ^ "signup") (RequestInit.make method_::Post body::(BodyInit.make body) ::headers ()) |>
+    then_ (
+      fun response => {
+        let status = Response.status response;
+        let json = Response.json response;
+        then_
+          (
+            fun jsonText =>
+              {
+                let responseObj = jsonToObject jsonText;
+                if (status == 200) {
+                  Js.log "Successful response!";
+                  onSuccess responseObj
+                } else {
+                  Js.log "No dice";
+                  onFailure responseObj##error
+                };
+                Js.log status
+              } |> resolve
+          )
+          json
+      }
+    )
+  )
+};
+let authenticateUser username password onSuccess onFailure => {
+  let body = encodeAuthData username password;
+  let headers = HeadersInit.make {"Content-Type": "application/json"};
+  Js.Promise.(
+    fetchWithInit
+      (apiHost ^ "login") (RequestInit.make method_::Post body::(BodyInit.make body) ::headers ()) |>
     then_ (
       fun response => {
         let status = Response.status response;
