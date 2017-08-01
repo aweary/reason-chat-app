@@ -1,6 +1,6 @@
 open ReasonJs;
 
-let storageKey = "@rc_id";
+let storageKey = "@rc_id2";
 
 let readTokenFromStorage () => {
   switch (Storage.getItem storageKey Storage.localStorage) {
